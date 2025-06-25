@@ -24,13 +24,11 @@ router.post('/login', async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
 
-    // In routes/auth.js or similar
-const token = jwt.sign(
-  { id: user._id, role: user.role, name: user.name }, // ✅ include name
-  process.env.JWT_SECRET,
-  { expiresIn: '7d' }
-);
-
+    const token = jwt.sign(
+      { id: user._id, role: user.role, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     res.status(200).json({
       token,
@@ -61,20 +59,16 @@ router.post('/users', async (req, res) => {
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing) return res.status(409).json({ message: 'User already exists' });
 
-    // Generate random password if not provided
-    const crypto = require('crypto');
+    const generatedPassword = crypto.randomBytes(4).toString('hex'); // 8-digit random password
 
-const generatedPassword = crypto.randomBytes(4).toString('hex'); // 8-digit password
-
-const newUser = new User({
-  name,
-  email,
-  username,
-  password: generatedPassword, // hashed by model
-  role,
-});
-await newUser.save();
-
+    const newUser = new User({
+      name,
+      email,
+      username,
+      password: generatedPassword, // will be hashed by the model
+      role,
+    });
+    await newUser.save();
 
     // Email setup
     const transporter = nodemailer.createTransport({
@@ -89,8 +83,8 @@ await newUser.save();
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Your Project Report System Account',
-      text: `Hello ${name},\n\nYour account has been created.\n\nUsername: ${username}\nPassword: ${generatedPassword}\nRole: ${role}\n\nLogin here: http://localhost:5173\n\nThank you.`,}
-
+      text: `Hello ${name},\n\nYour account has been created successfully.\n\nLogin Credentials:\nUsername: ${username}\nPassword: ${generatedPassword}\nRole: ${role}\n\nLogin here: ${process.env.FRONTEND_URL}\n\nThank you.`,
+    };
 
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
