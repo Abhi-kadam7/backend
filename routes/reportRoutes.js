@@ -11,12 +11,12 @@ const User = require('../models/User');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-/* ======================== SUBMIT REPORT ======================== */
+/* ================= SUBMIT REPORT ================= */
 router.post('/submit-report', authMiddleware, upload.single('report'), async (req, res) => {
   try {
     const { projectTitle } = req.body;
     if (!projectTitle || !req.file) {
-      return res.status(400).json({ message: 'Title and PDF required' });
+      return res.status(400).json({ message: 'Title and PDF are required.' });
     }
 
     const report = new Report({
@@ -32,80 +32,77 @@ router.post('/submit-report', authMiddleware, upload.single('report'), async (re
     });
 
     await report.save();
-    res.status(201).json({ message: 'Report submitted successfully' });
+    res.status(201).json({ message: 'Report submitted successfully.' });
   } catch (err) {
-    console.error('Error submitting report:', err);
-    res.status(500).json({ message: 'Server error saving report' });
+    console.error(err);
+    res.status(500).json({ message: 'Error submitting report.' });
   }
 });
 
-/* ======================== GET MY REPORTS ======================== */
+/* ================= GET OWN REPORTS ================= */
 router.get('/my-reports', authMiddleware, async (req, res) => {
   try {
     const reports = await Report.find({ user: req.user.id }).sort({ submissionDate: -1 });
     res.json(reports);
   } catch (err) {
-    console.error('Error fetching my reports:', err);
-    res.status(500).json({ message: 'Failed to fetch reports' });
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch reports.' });
   }
 });
 
-/* ======================== GET ALL REPORTS ======================== */
+/* ================= GET ALL REPORTS ================= */
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const reports = await Report.find().sort({ submissionDate: -1 });
     res.json(reports);
   } catch (err) {
-    console.error('Error fetching all reports:', err);
-    res.status(500).json({ message: 'Failed to fetch reports' });
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch all reports.' });
   }
 });
 
-/* ======================== SERVE PDF REPORT ======================== */
+/* ================= SERVE PDF ================= */
 router.get('/:id/pdf', async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid report ID' });
-
-    const report = await Report.findById(id);
-    if (!report?.pdf?.data) return res.status(404).json({ message: 'PDF missing' });
+    const report = await Report.findById(req.params.id);
+    if (!report?.pdf?.data) return res.status(404).json({ message: 'PDF not found.' });
 
     res.set('Content-Type', report.pdf.contentType);
     res.set('Content-Disposition', `inline; filename="${report.pdf.originalName}"`);
     res.send(report.pdf.data);
   } catch (err) {
-    console.error('Error serving PDF:', err);
-    res.status(500).json({ message: 'Failed to serve PDF' });
+    console.error(err);
+    res.status(500).json({ message: 'Error serving PDF.' });
   }
 });
 
-/* ======================== APPROVE REPORT ======================== */
+/* ================= APPROVE REPORT ================= */
 router.put('/:id/approve', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
-    if (!report) return res.status(404).json({ message: 'Report not found' });
+    if (!report) return res.status(404).json({ message: 'Report not found.' });
 
     report.isApproved = true;
     report.rejected = false;
     report.rejectionReason = '';
     await report.save();
 
-    res.json({ message: 'Report approved successfully' });
+    res.json({ message: 'Report approved successfully.' });
   } catch (err) {
-    console.error('Error approving report:', err);
-    res.status(500).json({ message: 'Error approving report' });
+    console.error(err);
+    res.status(500).json({ message: 'Error approving report.' });
   }
 });
 
-/* ======================== REJECT REPORT ======================== */
+/* ================= REJECT REPORT ================= */
 router.put('/:id/reject', authMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
     const report = await Report.findById(req.params.id);
-    if (!report) return res.status(404).json({ message: 'Report not found' });
+    if (!report) return res.status(404).json({ message: 'Report not found.' });
 
     const user = await User.findById(report.user);
-    if (!user?.email) return res.status(400).json({ message: 'Student email not found' });
+    if (!user?.email) return res.status(400).json({ message: 'Student email missing.' });
 
     report.isApproved = false;
     report.rejected = true;
@@ -124,25 +121,25 @@ router.put('/:id/reject', authMiddleware, async (req, res) => {
       from: 'abhi77678842@gmail.com',
       to: user.email,
       subject: '❌ Project Report Rejected',
-      text: `Dear ${report.studentName},\n\nYour project report titled "${report.projectTitle}" has been rejected.\n\nReason: ${reason}\n\nPlease review and resubmit.\n\nBest regards,\nProject Review Committee`,
+      text: `Dear ${report.studentName},\n\nYour project report titled "${report.projectTitle}" has been rejected.\n\nReason: ${reason}\n\nPlease revise and resubmit.`,
     });
 
-    res.json({ message: 'Report rejected and email sent' });
+    res.json({ message: 'Report rejected and student notified.' });
   } catch (err) {
-    console.error('Error rejecting report:', err);
-    res.status(500).json({ message: 'Rejection failed' });
+    console.error(err);
+    res.status(500).json({ message: 'Error rejecting report.' });
   }
 });
 
-/* ======================== GENERATE CERTIFICATE ======================== */
+/* ================= GENERATE CERTIFICATE ================= */
 router.post('/:id/certificate', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
-    if (!report) return res.status(404).json({ message: 'Report not found' });
-    if (!report.isApproved) return res.status(400).json({ message: 'Report not approved' });
+    if (!report) return res.status(404).json({ message: 'Report not found.' });
+    if (!report.isApproved) return res.status(400).json({ message: 'Report not approved yet.' });
 
     const user = await User.findById(report.user);
-    if (!user?.email) return res.status(400).json({ message: 'Student email not found' });
+    if (!user?.email) return res.status(400).json({ message: 'Student email not found.' });
 
     report.certificateGenerated = true;
     await report.save();
@@ -166,21 +163,19 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
         from: 'abhi77678842@gmail.com',
         to: user.email,
         subject: '🎓 Project Completion Certificate',
-        text: `Dear ${report.studentName},\n\nPlease find your official project completion certificate attached.\n\nBest regards,\nProject Review Committee`,
-        attachments: [{ filename: 'certificate.pdf', content: pdfData }],
+        text: `Dear ${report.studentName},\n\nCongratulations! Attached is your project completion certificate.\n\nRegards,\nNMCE Project Committee`,
+        attachments: [{ filename: 'Project_Certificate.pdf', content: pdfData }],
       });
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=certificate.pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=Project_Certificate.pdf');
       res.send(pdfData);
     });
 
+    // Draw certificate
     const logoPath = path.join(__dirname, '../assets/logo.png');
-    const logoWidth = 100;
-    const logoX = (doc.page.width - logoWidth) / 2;
-
     doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(2).stroke('#1A237E');
-    doc.image(logoPath, logoX, 40, { width: logoWidth });
+    doc.image(logoPath, (doc.page.width - 100) / 2, 40, { width: 100 });
 
     doc.y = 160;
     doc.fontSize(20).fillColor('#0D47A1').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', { align: 'center', underline: true });
@@ -219,29 +214,29 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
 
     doc.end();
   } catch (err) {
-    console.error('Certificate generation failed:', err);
-    res.status(500).json({ message: 'Certificate generation or email failed' });
+    console.error(err);
+    res.status(500).json({ message: 'Certificate generation or email failed.' });
   }
 });
 
-/* ======================== DELETE REPORT ======================== */
+/* ================= DELETE REPORT ================= */
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
-    if (!report) return res.status(404).json({ message: 'Report not found' });
+    if (!report) return res.status(404).json({ message: 'Report not found.' });
 
     const isOwner = report.user.toString() === req.user.id;
     const isAdminOrTeacher = req.user.role === 'admin' || req.user.role === 'teacher';
 
     if (!isOwner && !isAdminOrTeacher) {
-      return res.status(403).json({ message: 'Unauthorized to delete this report' });
+      return res.status(403).json({ message: 'Unauthorized to delete this report.' });
     }
 
     await Report.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Report deleted successfully' });
+    res.json({ message: 'Report deleted successfully.' });
   } catch (err) {
-    console.error('Delete report error:', err);
-    res.status(500).json({ message: 'Error deleting report' });
+    console.error(err);
+    res.status(500).json({ message: 'Error deleting report.' });
   }
 });
 
