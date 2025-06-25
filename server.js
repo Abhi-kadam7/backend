@@ -14,12 +14,26 @@ const app = express();
 // 🌐 Connect to MongoDB Atlas
 connectDB();
 
-// 🛡️ Middlewares
+// ✅ Allowed frontend URLs (Vercel)
+const allowedOrigins = [
+  'https://frontend-29j86722u-expense-trackers-projects-3f794ac3.vercel.app',
+  'https://frontend-one-silk-52.vercel.app'
+];
+
+// 🛡️ CORS Middleware
 app.use(cors({
-  origin: 'frontend-29j86722u-expense-trackers-projects-3f794ac3.vercel.app', // ✅ Replace with actual Vercel URL
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS: Not allowed'));
+    }
+  },
   credentials: true
 }));
-app.use(express.json()); // Parse incoming JSON
+
+// 📦 Parse JSON
+app.use(express.json());
 
 // 🛣️ Routes
 app.use('/api/auth', authRoutes);             // Auth: Register/Login
