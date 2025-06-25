@@ -175,13 +175,13 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       res.send(pdfData);
     });
 
-    // ==== Design Starts ====
+    // ===== DESIGN START =====
     const logoPath = path.join(__dirname, '../assets/logo.png');
 
-    // Border
+    // Outer border
     doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(3).stroke('#2E7D32');
 
-    // Logo (centered top)
+    // Logo center top
     doc.image(logoPath, (doc.page.width - 80) / 2, 30, { width: 80 });
 
     // Header
@@ -197,14 +197,14 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       { align: 'center' }
     );
 
-    // Certificate Title
-    doc.moveDown(1.2);
+    // Title
+    doc.moveDown(1);
     doc.fontSize(30).fillColor('#4A148C').text('CERTIFICATE OF COMPLETION', {
       align: 'center',
       underline: true,
     });
 
-    // Recipient Details
+    // Recipient
     doc.moveDown(1);
     doc.fontSize(16).fillColor('#000').text('This is to certify that', { align: 'center' });
 
@@ -223,14 +223,14 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       italics: true,
     });
 
-    // Additional Message
+    // Description
     doc.moveDown(1.2);
     doc.fontSize(14).fillColor('#444').text(
-      `This certificate is presented in recognition of their dedication, commitment, and successful`,
+      'This certificate is presented in recognition of their dedication, commitment, and successful',
       { align: 'center' }
     );
-    doc.fontSize(14).fillColor('#444').text(
-      `completion of the academic project under the department’s guidance and standards.`,
+    doc.text(
+      'completion of the academic project under the department’s guidance and standards.',
       { align: 'center' }
     );
 
@@ -240,17 +240,21 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       { align: 'center' }
     );
 
-    // Signatures aligned evenly
-    const y = doc.y + 30;
+    // Signatures - properly aligned in one row
+    doc.y = 420; // force fixed Y to avoid new page
     const width = doc.page.width;
-    doc.fontSize(12).fillColor('#000')
-      .text('_______________________', width * 0.15, y)
-      .text('HOD Signature', width * 0.15 + 20, y + 15)
-      .text('_______________________', width * 0.45, y)
-      .text('Coordinator Signature', width * 0.45 + 20, y + 15)
-      .text('_______________________', width * 0.75, y)
-      .text('Principal Signature', width * 0.75 + 20, y + 15);
 
+    doc.fontSize(12).fillColor('#000')
+      .text('_______________________', width * 0.15, doc.y)
+      .text('HOD Signature', width * 0.15 + 25, doc.y + 15)
+
+      .text('_______________________', width * 0.45, doc.y)
+      .text('Coordinator Signature', width * 0.45 + 10, doc.y + 15)
+
+      .text('_______________________', width * 0.75, doc.y)
+      .text('Principal Signature', width * 0.75 + 20, doc.y + 15);
+
+    // Finalize PDF
     doc.end();
 
   } catch (err) {
@@ -258,6 +262,7 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Certificate generation or email failed.' });
   }
 });
+
 
 
 /* ================= DELETE REPORT ================= */
