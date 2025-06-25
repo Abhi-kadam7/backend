@@ -51,7 +51,7 @@ router.get('/my-reports', authMiddleware, async (req, res) => {
 });
 
 /* ======================== GET ALL REPORTS ======================== */
-router.get('/reports', authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const reports = await Report.find().sort({ submissionDate: -1 });
     res.json(reports);
@@ -62,7 +62,7 @@ router.get('/reports', authMiddleware, async (req, res) => {
 });
 
 /* ======================== SERVE PDF ======================== */
-router.get('/reports/:id/pdf', async (req, res) => {
+router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -82,7 +82,7 @@ router.get('/reports/:id/pdf', async (req, res) => {
 });
 
 /* ======================== APPROVE REPORT ======================== */
-router.put('/reports/:id/approve', authMiddleware, async (req, res) => {
+router.put('/:id/approve', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Not found' });
@@ -100,7 +100,7 @@ router.put('/reports/:id/approve', authMiddleware, async (req, res) => {
 });
 
 /* ======================== REJECT REPORT ======================== */
-router.put('/reports/:id/reject', authMiddleware, async (req, res) => {
+router.put('/:id/reject', authMiddleware, async (req, res) => {
   try {
     const { reason } = req.body;
     const report = await Report.findById(req.params.id);
@@ -114,7 +114,6 @@ router.put('/reports/:id/reject', authMiddleware, async (req, res) => {
     report.rejectionReason = reason || 'No reason provided';
     await report.save();
 
-    // Send rejection email
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -138,7 +137,7 @@ router.put('/reports/:id/reject', authMiddleware, async (req, res) => {
 });
 
 /* ======================== GENERATE CERTIFICATE ======================== */
-router.post('/reports/:id/certificate', authMiddleware, async (req, res) => {
+router.post('/:id/certificate', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Report not found' });
@@ -178,7 +177,6 @@ router.post('/reports/:id/certificate', authMiddleware, async (req, res) => {
       res.send(pdfData);
     });
 
-    // PDF Layout
     const logoPath = path.join(__dirname, '../assets/logo.png');
     const logoWidth = 100;
     const logoX = (doc.page.width - logoWidth) / 2;
@@ -229,7 +227,7 @@ router.post('/reports/:id/certificate', authMiddleware, async (req, res) => {
 });
 
 /* ======================== DELETE REPORT ======================== */
-router.delete('/reports/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Report not found' });
