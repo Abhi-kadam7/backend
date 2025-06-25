@@ -144,6 +144,9 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     report.certificateGenerated = true;
     await report.save();
 
+    const PDFDocument = require('pdfkit');
+    const path = require('path');
+    const nodemailer = require('nodemailer');
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
     const buffers = [];
 
@@ -155,7 +158,7 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
         service: 'gmail',
         auth: {
           user: 'abhi77678842@gmail.com',
-          pass: 'trwd sngp rptt fzpv', // Use environment variables in production!
+          pass: 'trwd sngp rptt fzpv',
         },
       });
 
@@ -218,42 +221,47 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       italics: true,
     });
 
-    // Description
-    doc.moveDown(1.2);
+    // Description Block
+    doc.moveDown(1);
     doc.fontSize(14).fillColor('#444').text(
       'This certificate is presented in recognition of their dedication, commitment, and successful',
-      { align: 'center' }
+      { align: 'center', lineGap: 2 }
     );
     doc.text(
       'completion of the academic project under the department’s guidance and standards.',
-      { align: 'center' }
+      { align: 'center', lineGap: 2 }
     );
 
-    doc.moveDown(1);
+    doc.moveDown(0.5);
     doc.fontSize(14).fillColor('#000').text(
       `Awarded on ${new Date().toLocaleDateString()} by Dr. Babasaheb Ambedkar Technological University.`,
       { align: 'center' }
     );
 
-    // ==================== SIGNATURES AT BOTTOM ====================
-const sigY = doc.page.height - 100; // 100px from bottom
-const sigLabelY = sigY + 18;
-const sigWidth = 180;
-const gap = (doc.page.width - 3 * sigWidth) / 4;
+    // Prevent overlapping by moving Y above bottom margin
+    if (doc.y > doc.page.height - 150) {
+      doc.y = doc.page.height - 150;
+    }
 
-const sig1X = gap;                    // HOD
-const sig2X = gap * 2 + sigWidth;     // Coordinator
-const sig3X = gap * 3 + sigWidth * 2; // Principal
+    // ==================== SIGNATURES ====================
+    const sigY = doc.page.height - 80;
+    const sigLabelY = sigY + 15;
+    const sigWidth = 160;
+    const gap = (doc.page.width - 3 * sigWidth) / 4;
 
-doc.fontSize(12).fillColor('#000')
-  .text('_______________________', sig1X, sigY, { width: sigWidth, align: 'center' })
-  .text('HOD Signature', sig1X, sigLabelY, { width: sigWidth, align: 'center' })
+    const sig1X = gap;
+    const sig2X = sig1X + sigWidth + gap;
+    const sig3X = sig2X + sigWidth + gap;
 
-  .text('_______________________', sig2X, sigY, { width: sigWidth, align: 'center' })
-  .text('Coordinator Signature', sig2X, sigLabelY, { width: sigWidth, align: 'center' })
+    doc.fontSize(12).fillColor('#000')
+      .text('_______________________', sig1X, sigY, { width: sigWidth, align: 'center' })
+      .text('HOD Signature', sig1X, sigLabelY, { width: sigWidth, align: 'center' })
 
-  .text('_______________________', sig3X, sigY, { width: sigWidth, align: 'center' })
-  .text('Principal Signature', sig3X, sigLabelY, { width: sigWidth, align: 'center' });
+      .text('_______________________', sig2X, sigY, { width: sigWidth, align: 'center' })
+      .text('Coordinator Signature', sig2X, sigLabelY, { width: sigWidth, align: 'center' })
+
+      .text('_______________________', sig3X, sigY, { width: sigWidth, align: 'center' })
+      .text('Principal Signature', sig3X, sigLabelY, { width: sigWidth, align: 'center' });
 
     // Finalize PDF
     doc.end();
