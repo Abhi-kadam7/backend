@@ -131,7 +131,7 @@ router.put('/:id/reject', authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= GENERATE CERTIFICATE ================= */
+//* ================= GENERATE CERTIFICATE ================= */
 router.post('/:id/certificate', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -144,8 +144,6 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     report.certificateGenerated = true;
     await report.save();
 
-    const PDFDocument = require('pdfkit');
-    const path = require('path');
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
     const buffers = [];
 
@@ -153,12 +151,11 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     doc.on('end', async () => {
       const pdfData = Buffer.concat(buffers);
 
-      const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: 'abhi77678842@gmail.com',
-          pass: 'trwd sngp rptt fzpv',
+          pass: 'trwd sngp rptt fzpv', // Use environment variables in production!
         },
       });
 
@@ -175,13 +172,13 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       res.send(pdfData);
     });
 
-    // ===== DESIGN START =====
+    // ==================== DESIGN START ====================
     const logoPath = path.join(__dirname, '../assets/logo.png');
 
     // Outer border
     doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(3).stroke('#2E7D32');
 
-    // Logo center top
+    // Logo
     doc.image(logoPath, (doc.page.width - 80) / 2, 30, { width: 80 });
 
     // Header
@@ -189,9 +186,7 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       align: 'center',
       underline: true,
     });
-    doc.fontSize(16).fillColor('#00695C').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', {
-      align: 'center',
-    });
+    doc.fontSize(16).fillColor('#00695C').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', { align: 'center' });
     doc.fontSize(12).fillColor('#333').text(
       'Department of Computer Science & Engineering\nPeth Naka, Sangli | Affiliated to DBATU, Lonere',
       { align: 'center' }
@@ -204,7 +199,7 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       underline: true,
     });
 
-    // Recipient
+    // Student Info
     doc.moveDown(1);
     doc.fontSize(16).fillColor('#000').text('This is to certify that', { align: 'center' });
 
@@ -240,23 +235,28 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       { align: 'center' }
     );
 
-    // Signatures - properly aligned in one row
-    doc.y = 420; // force fixed Y to avoid new page
-    const width = doc.page.width;
+    // ==================== SIGNATURES ====================
+    const sigY = 420;
+    const sigLabelY = sigY + 18;
+    const sigWidth = 180;
+    const gap = (doc.page.width - 3 * sigWidth) / 4;
+
+    const sig1X = gap;                    // HOD
+    const sig2X = gap * 2 + sigWidth;     // Coordinator
+    const sig3X = gap * 3 + sigWidth * 2; // Principal
 
     doc.fontSize(12).fillColor('#000')
-      .text('_______________________', width * 0.15, doc.y)
-      .text('HOD Signature', width * 0.15 + 25, doc.y + 15)
+      .text('_______________________', sig1X, sigY, { width: sigWidth, align: 'center' })
+      .text('HOD Signature', sig1X, sigLabelY, { width: sigWidth, align: 'center' })
 
-      .text('_______________________', width * 0.45, doc.y)
-      .text('Coordinator Signature', width * 0.45 + 10, doc.y + 15)
+      .text('_______________________', sig2X, sigY, { width: sigWidth, align: 'center' })
+      .text('Coordinator Signature', sig2X, sigLabelY, { width: sigWidth, align: 'center' })
 
-      .text('_______________________', width * 0.75, doc.y)
-      .text('Principal Signature', width * 0.75 + 20, doc.y + 15);
+      .text('_______________________', sig3X, sigY, { width: sigWidth, align: 'center' })
+      .text('Principal Signature', sig3X, sigLabelY, { width: sigWidth, align: 'center' });
 
     // Finalize PDF
     doc.end();
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Certificate generation or email failed.' });
