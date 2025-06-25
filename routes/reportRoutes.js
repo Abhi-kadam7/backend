@@ -144,6 +144,8 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     report.certificateGenerated = true;
     await report.save();
 
+    const PDFDocument = require('pdfkit');
+    const path = require('path');
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
     const buffers = [];
 
@@ -151,6 +153,7 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     doc.on('end', async () => {
       const pdfData = Buffer.concat(buffers);
 
+      const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -172,84 +175,82 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       res.send(pdfData);
     });
 
-    // ====== Certificate Design Begins ======
+    // ==== Design Starts ====
     const logoPath = path.join(__dirname, '../assets/logo.png');
 
     // Border
-    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40)
-       .lineWidth(3)
-       .stroke('#00897B');
+    doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(3).stroke('#2E7D32');
 
-    // University Header
-    doc.image(logoPath, 60, 30, { width: 80 });
-    doc.fontSize(20).fillColor('#00695C').text('Dr. Babasaheb Ambedkar Technological University', 150, 40, {
-      align: 'left',
-      width: doc.page.width - 200,
-    });
+    // Logo (centered top)
+    doc.image(logoPath, (doc.page.width - 80) / 2, 30, { width: 80 });
 
-    doc.moveDown(0.3);
-    doc.fontSize(14).fillColor('#000').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', {
+    // Header
+    doc.fontSize(20).fillColor('#1A237E').text('Dr. Babasaheb Ambedkar Technological University', 0, 130, {
       align: 'center',
       underline: true,
     });
-
-    doc.fontSize(12).fillColor('#333').text('Department of Computer Science & Engineering', { align: 'center' });
-
-    doc.moveDown(0.2);
-    doc.fontSize(10).fillColor('#444').text(
-      'Gat No. 894 / 2665, Pune - Bangalore (NH4) Highway, At Post: Peth Naka, Tal: Walwa, Dist: Sangli. Pin - 415 407',
+    doc.fontSize(16).fillColor('#00695C').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', {
+      align: 'center',
+    });
+    doc.fontSize(12).fillColor('#333').text(
+      'Department of Computer Science & Engineering\nPeth Naka, Sangli | Affiliated to DBATU, Lonere',
       { align: 'center' }
     );
 
     // Certificate Title
-    doc.moveDown(1.5);
-    doc.fontSize(28).fillColor('#4A148C').text('Certificate of Completion', {
+    doc.moveDown(1.2);
+    doc.fontSize(30).fillColor('#4A148C').text('CERTIFICATE OF COMPLETION', {
       align: 'center',
       underline: true,
     });
 
-    // Body Content
+    // Recipient Details
     doc.moveDown(1);
     doc.fontSize(16).fillColor('#000').text('This is to certify that', { align: 'center' });
 
-    doc.moveDown();
-    doc.fontSize(24).fillColor('#1B5E20').text(report.studentName, {
+    doc.moveDown(0.5);
+    doc.fontSize(26).fillColor('#2E7D32').text(report.studentName, {
       align: 'center',
       underline: true,
     });
 
-    doc.moveDown();
-    doc.fontSize(16).fillColor('#000').text('has successfully completed the project titled', {
-      align: 'center',
-    });
+    doc.moveDown(0.8);
+    doc.fontSize(16).fillColor('#000').text('has successfully completed the project titled', { align: 'center' });
 
-    doc.moveDown();
+    doc.moveDown(0.5);
     doc.fontSize(20).fillColor('#0D47A1').text(`"${report.projectTitle}"`, {
       align: 'center',
       italics: true,
     });
 
+    // Additional Message
+    doc.moveDown(1.2);
+    doc.fontSize(14).fillColor('#444').text(
+      `This certificate is presented in recognition of their dedication, commitment, and successful`,
+      { align: 'center' }
+    );
+    doc.fontSize(14).fillColor('#444').text(
+      `completion of the academic project under the department’s guidance and standards.`,
+      { align: 'center' }
+    );
+
     doc.moveDown(1);
-    doc.fontSize(14).fillColor('#333').text(
+    doc.fontSize(14).fillColor('#000').text(
       `Awarded on ${new Date().toLocaleDateString()} by Dr. Babasaheb Ambedkar Technological University.`,
       { align: 'center' }
     );
 
-    // Footer Signatures
-    doc.moveDown(3);
-    const y = doc.y;
-
+    // Signatures aligned evenly
+    const y = doc.y + 30;
+    const width = doc.page.width;
     doc.fontSize(12).fillColor('#000')
-      .text('_______________________', 100, y)
-      .text('HOD Signature', 125, y + 15)
+      .text('_______________________', width * 0.15, y)
+      .text('HOD Signature', width * 0.15 + 20, y + 15)
+      .text('_______________________', width * 0.45, y)
+      .text('Coordinator Signature', width * 0.45 + 20, y + 15)
+      .text('_______________________', width * 0.75, y)
+      .text('Principal Signature', width * 0.75 + 20, y + 15);
 
-      .text('_______________________', 330, y)
-      .text('Coordinator Signature', 345, y + 15)
-
-      .text('_______________________', 570, y)
-      .text('Principal Signature', 595, y + 15);
-
-    // ====== Certificate Design Ends ======
     doc.end();
 
   } catch (err) {
