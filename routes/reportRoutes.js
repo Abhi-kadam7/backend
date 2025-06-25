@@ -132,6 +132,7 @@ router.put('/:id/reject', authMiddleware, async (req, res) => {
 });
 
 /* ================= GENERATE CERTIFICATE ================= */
+/* ================= GENERATE CERTIFICATE ================= */
 router.post('/:id/certificate', authMiddleware, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -144,7 +145,8 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     report.certificateGenerated = true;
     await report.save();
 
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    // ✅ Landscape layout
+    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
     const buffers = [];
 
     doc.on('data', buffers.push.bind(buffers));
@@ -172,15 +174,15 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
       res.send(pdfData);
     });
 
-    // Draw certificate
+    // 📄 Certificate content (unchanged, will now render in landscape)
     const logoPath = path.join(__dirname, '../assets/logo.png');
     doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).lineWidth(2).stroke('#1A237E');
     doc.image(logoPath, (doc.page.width - 100) / 2, 40, { width: 100 });
 
-    doc.y = 160;
-    doc.fontSize(20).fillColor('#0D47A1').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', { align: 'center', underline: true });
+    doc.y = 140;
+    doc.fontSize(24).fillColor('#0D47A1').text('NANASAHEB MAHADIK COLLEGE OF ENGINEERING', { align: 'center', underline: true });
     doc.moveDown(0.3);
-    doc.fontSize(12).fillColor('#000').text('Department of Computer Science & Engineering', { align: 'center' });
+    doc.fontSize(14).fillColor('#000').text('Department of Computer Science & Engineering', { align: 'center' });
     doc.moveDown(0.2);
     doc.fontSize(10).fillColor('#444').text(
       'Gat No. 894 / 2665, Pune - Banglore (NH4) Highway,\nAt Post: Peth Naka, Tal: Walwa, Dist: Sangli. Pin - 415 407',
@@ -188,16 +190,16 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     );
 
     doc.moveDown(1.5);
-    doc.fontSize(26).fillColor('#4A148C').text('Certificate of Completion', { align: 'center', underline: true });
+    doc.fontSize(30).fillColor('#4A148C').text('Certificate of Completion', { align: 'center', underline: true });
 
-    doc.moveDown(1.2);
-    doc.fontSize(16).fillColor('#000').text('This certificate is proudly presented to', { align: 'center' });
+    doc.moveDown(1);
+    doc.fontSize(18).fillColor('#000').text('This certificate is proudly presented to', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(22).fillColor('#1B5E20').text(report.studentName, { align: 'center', underline: true });
+    doc.fontSize(26).fillColor('#1B5E20').text(report.studentName, { align: 'center', underline: true });
     doc.moveDown();
-    doc.fontSize(16).fillColor('#000').text('for successfully completing the project titled', { align: 'center' });
+    doc.fontSize(18).fillColor('#000').text('for successfully completing the project titled', { align: 'center' });
     doc.moveDown();
-    doc.fontSize(18).fillColor('#6A1B9A').text(`"${report.projectTitle}"`, { align: 'center', italics: true });
+    doc.fontSize(20).fillColor('#6A1B9A').text(`"${report.projectTitle}"`, { align: 'center', italics: true });
 
     doc.moveDown(2);
     doc.fontSize(14).fillColor('#333').text(`Date: ${new Date().toLocaleDateString()}`, { align: 'center' });
@@ -205,12 +207,12 @@ router.post('/:id/certificate', authMiddleware, async (req, res) => {
     doc.moveDown(3);
     const y = doc.y;
     doc.fontSize(12).fillColor('#000')
-      .text('_______________________', 60, y)
-      .text('HOD Signature', 80, y + 15)
-      .text('_______________________', 230, y)
-      .text('Coordinator Signature', 245, y + 15)
-      .text('_______________________', 420, y)
-      .text('Principal Signature', 440, y + 15);
+      .text('_______________________', 100, y)
+      .text('HOD Signature', 120, y + 15)
+      .text('_______________________', 300, y)
+      .text('Coordinator Signature', 320, y + 15)
+      .text('_______________________', 500, y)
+      .text('Principal Signature', 520, y + 15);
 
     doc.end();
   } catch (err) {
