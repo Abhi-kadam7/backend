@@ -17,10 +17,10 @@ connectDB();
 // ✅ Allowed frontend URLs (Vercel)
 const allowedOrigins = [
   'https://frontend-29j86722u-expense-trackers-projects-3f794ac3.vercel.app',
-  'https://frontend-one-silk-52.vercel.app'
+  'https://frontend-one-silk-52.vercel.app',
+  'http://localhost:5173' // ✅ Add this for local development
 ];
 
-// 🛡️ CORS Middleware
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -31,6 +31,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 
 // 📦 Parse JSON
 app.use(express.json());
